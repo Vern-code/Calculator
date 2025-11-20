@@ -1,4 +1,6 @@
 // calculator.c
+// Added by Usman to practice Git workflow
+
 #include <stdio.h>
 
 int main(void) {
