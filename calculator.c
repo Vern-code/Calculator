@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 int main(void)
 {
@@ -43,12 +44,6 @@ int main(void)
     {
         printf("The division of %d by %d = %d\n", num1, num2, num1 / num2);
     }
-
-
-
-    
-
-    
 
     return 0;
 }
