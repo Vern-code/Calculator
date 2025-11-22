@@ -23,8 +23,7 @@ int main(void)
         scanf(" %c", &operator);
 
     } while (operator != '+' && operator != '-' && operator != '*' && operator != '/');
-    
- 
+
     if (operator == '+')
     {
         printf("The sum of %d and %d = %d\n", num1, num2, num1 + num2);
