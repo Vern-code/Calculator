@@ -57,7 +57,7 @@ int main(void)
         token = strtok(NULL, delim);
     }
 
-    printf("RESULT: %.6f\n", result);  // 6 decimal places
+    printf("RESULT: %.2f\n", result);  // 6 decimal places
 
     return 0;
 }
