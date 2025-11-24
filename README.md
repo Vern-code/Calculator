@@ -13,3 +13,4 @@ Operator need to be with space for the code to work well
 # Calculator_3
 Can now solve any expression format
 Space not necessary for code to work well
+Operators order of priority is implemented (BODMAS)
