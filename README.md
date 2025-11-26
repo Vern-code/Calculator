@@ -14,3 +14,6 @@ Operator need to be with space for the code to work well
 Can now solve any expression format
 Space not necessary for code to work well
 Operators order of priority is implemented (BODMAS)
+
+# Calculator_4
+Handling of Unary minus / negative numbers
