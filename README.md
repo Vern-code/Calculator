@@ -18,3 +18,5 @@ Operators order of priority is implemented (BODMAS)
 # Calculator_4
 Handling of Unary minus / negative numbers
 Also handle empty expression; gives message of no expression detected
+Detects invalid sequences where multiple * and / follow each other in a row
+Detects multiple counts of - and + in a row

@@ -42,11 +42,38 @@ int main(void) {
         
         // Unary minus or unary plus
         if ((input[i] == '-' || input[i] == '+') &&
-            (i == 0 || is_operator(input[i - 1])) &&
-            ((input[i + 1] >= '0' && input[i + 1] <= '9') || input[i + 1] == '.')) 
+            (i == 0 || is_operator(input[i - 1]))) 
         {
-            temp_buffer[temp_index] = input[i];
+
+            int minus_count = 0;
+
+            while (input[i] == '+' || input[i] == '-') 
+            {
+                if (input[i] == '-')
+                    minus_count++;
+
+                i++;   // move to next character
+            }
+
+            if (minus_count % 2 == 0)
+            {
+                temp_buffer[temp_index] = '+';
+            }
+            else
+            {
+                temp_buffer[temp_index] = '-';
+            }
+            
             temp_index++;
+
+             // Now input[i] should be a digit or decimal
+            if (!((input[i] >= '0' && input[i] <= '9') || input[i] == '.'))
+            {
+                printf("Invalid expression after sign sequence!\n");
+                return 1;
+            }
+
+            i--; 
             continue;
         }
 
@@ -99,8 +126,15 @@ int main(void) {
     // ----------------------------
     for (int i = 0; i < op_index; i++) {
 
-        if (operators[i] == '*' || operators[i] == '/') {
-
+        if (operators[i] == '*' || operators[i] == '/') 
+        {
+            // check for invalid multiplications and divisions sequence
+            if (operators[i + 1] == '*' || operators[i + 1] == '/')
+            {
+                printf("Invalid expression: two * or / operators in a row!\n");
+                return 1;
+            }
+            
             double temp;
 
             if (operators[i] == '*')
