@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int is_operator(char c);
+
 int main(void) {
     char input[100];
     double numbers[100];
@@ -15,21 +17,50 @@ int main(void) {
     fgets(input, sizeof(input), stdin);
     input[strcspn(input, "\n")] = '\0';
 
+    // Check if input is empty or contains only spaces
+    int has_expression = 0;
+    for (int i = 0; i < strlen(input); i++) {
+        if (input[i] != ' ') {
+            has_expression = 1;
+            break;
+        }
+    }
+
+    if (!has_expression) {
+        printf("No expression detected. End of program!\n");
+        return 0;
+    }
+
     // ----------------------------
     // PARSE INPUT
     // ----------------------------
     for (int i = 0; i < strlen(input); i++) {
 
-        // If digit or dot → add to temp buffer
-        if ((input[i] >= '0' && input[i] <= '9') || input[i] == '.') {
+        if (input[i] == ' ') {
+            continue;
+        }
+        
+        // Unary minus or unary plus
+        if ((input[i] == '-' || input[i] == '+') &&
+            (i == 0 || is_operator(input[i - 1])) &&
+            ((input[i + 1] >= '0' && input[i + 1] <= '9') || input[i + 1] == '.')) 
+        {
             temp_buffer[temp_index] = input[i];
             temp_index++;
+            continue;
+        }
+
+        // If digit or decimal point → add to temp buffer
+        else if ((input[i] >= '0' && input[i] <= '9') || input[i] == '.') 
+        {
+            temp_buffer[temp_index] = input[i];
+            temp_index++;
+            continue;
         }
 
         // If operator
-        else if (input[i] == '+' || input[i] == '-' || 
-                 input[i] == '*' || input[i] == '/') {
-
+        else if (is_operator(input[i])) 
+        {
             // Close number string
             temp_buffer[temp_index] = '\0';
 
@@ -44,6 +75,15 @@ int main(void) {
             // Reset temp buffer
             temp_index = 0;
             temp_buffer[0] = '\0';
+            
+            continue;
+        }
+
+        else
+        {
+            // dealing with non-numbers / operators
+            printf("Invalid input. Only numbers and operators (+,-,*,/) allowed!\n");
+            return 1;
         }
     }
 
@@ -77,18 +117,18 @@ int main(void) {
             numbers[i] = temp;
 
             // Shift numbers left
-        for (int j = i + 1; j < num_index - 1; j++) {
-            numbers[j] = numbers[j + 1];
-        }
-        num_index--;
+            for (int j = i + 1; j < num_index - 1; j++) {
+                numbers[j] = numbers[j + 1];
+            }
+            num_index--;
 
-        // Shift operators left
-        for (int j = i; j < op_index - 1; j++) {
-            operators[j] = operators[j + 1];
-        }
-        op_index--;
+            // Shift operators left
+            for (int j = i; j < op_index - 1; j++) {
+                operators[j] = operators[j + 1];
+            }
+            op_index--;
 
-        i--; // Check same index again
+            i--; // Check same index again
 
         }
     }
@@ -98,23 +138,28 @@ int main(void) {
     // ----------------------------
     double result = numbers[0];
 
-    for (int i = 0; i < op_index; i++) {
+    for (int i = 0; i < op_index; i++) 
+    {
         if (operators[i] == '+')
             result += numbers[i + 1];
         else if (operators[i] == '-')
             result -= numbers[i + 1];
     }
-
+   
+    
     printf("RESULT: %.3f\n", result);
 
     return 0;
 }
 
-
-
-
-
-
-
-
-
+int is_operator(char c) {
+    switch (c) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+            return 1;   // TRUE → it IS an operator
+        default:
+            return 0;   // FALSE → NOT an operator
+    }
+}
