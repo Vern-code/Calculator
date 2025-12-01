@@ -50,8 +50,9 @@ int main(void) {
             while (input[i] == '+' || input[i] == '-') 
             {
                 if (input[i] == '-')
+                {
                     minus_count++;
-
+                }
                 i++;   // move to next character
             }
 
@@ -88,6 +89,18 @@ int main(void) {
         // If operator
         else if (is_operator(input[i])) 
         {
+            // Check if two invalid operators occur in a row
+            if (i > 0 && is_operator(input[i - 1])) {
+        
+            // Allow ONLY valid unary signs (-,+) after another operator
+                if (!((input[i] == '+' || input[i] == '-') 
+                && (input[i-1] == '+' || input[i-1] == '-' ))) 
+                {
+                    printf("Invalid operator sequence near '%c%c'\n", input[i-1], input[i]);
+                    return 1;
+                }
+            }
+
             // Close number string
             temp_buffer[temp_index] = '\0';
 
@@ -129,11 +142,11 @@ int main(void) {
         if (operators[i] == '*' || operators[i] == '/') 
         {
             // check for invalid multiplications and divisions sequence
-            if (operators[i + 1] == '*' || operators[i + 1] == '/')
-            {
-                printf("Invalid expression: two * or / operators in a row!\n");
-                return 1;
-            }
+            // if (operators[i + 1] == '*' || operators[i + 1] == '/')
+            // {
+            //     printf("Invalid expression: two * or / operators in a row!\n");
+            //     return 1;
+            // }
             
             double temp;
 
