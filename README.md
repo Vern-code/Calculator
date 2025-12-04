@@ -20,3 +20,7 @@ Handling of Unary minus / negative numbers
 Also handle empty expression; gives message of no expression detected
 Detects invalid sequences where multiple * and / follow each other in a row
 Detects multiple counts of - and + in a row
+
+# Calculator_5
+Handling of brackets
+Can now solve expressions with brackets

@@ -34,7 +34,8 @@ int main(void) {
     // ----------------------------
     // PARSE INPUT
     // ----------------------------
-    for (int i = 0; i < strlen(input); i++) {
+    for (int i = 0; i < strlen(input); i++) 
+    {
 
         if (input[i] == ' ') {
             continue;

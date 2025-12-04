@@ -3,6 +3,7 @@
 #include <string.h>
 
 int is_operator(char c);
+int is_digit_or_decimal(char c);
 
 int main(void) {
     char input[100];
@@ -34,13 +35,139 @@ int main(void) {
     // ----------------------------
     // PARSE INPUT
     // ----------------------------
-    for (int i = 0; i < strlen(input); i++) {
+    for (int i = 0; i < strlen(input); i++)
+    {
 
-        if (input[i] == ' ') {
+        if (input[i] == ' ') 
+        {
             continue;
         }
         
-        // Unary minus or unary plus
+
+        // ------------------------
+        // DEALING WITH BRACKETS
+        //-----------------------
+
+        if (input[i] == '(')
+        {
+            int start = i + 1;
+            int end = start;
+
+            // Temporary buffer and counters for inside the bracket
+            char brac_temp_buffer[100];
+            int brac_temp_index = 0;
+            double brac_numbers[100];
+            char brac_operators[100];
+            int brac_num_count = 0;
+            int brac_op_count = 0;
+
+            // Scan until closing ')'
+            while (input[end] != ')' && input[end] != '\0')
+            {
+                // Handle unary +/- inside brackets
+                if ((input[end] == '-' || input[end] == '+') && 
+                    (end == start || is_operator(input[end - 1])))
+                {
+                    int minus_count = 0;
+                    while (input[end] == '+' || input[end] == '-')
+                    {
+                        if (input[end] == '-') minus_count++;
+                        end++;
+                    }
+                    brac_temp_buffer[brac_temp_index++] = (minus_count % 2 == 0) ? '+' : '-';
+                    continue;
+                }
+
+                // Digit or decimal
+                if (is_digit_or_decimal(input[end])) 
+                {
+                    brac_temp_buffer[brac_temp_index++] = input[end];
+                    end++;
+                    continue;
+                }
+
+                // Operator
+                if (is_operator(input[end])) 
+                {
+                    // Close current number string
+                    brac_temp_buffer[brac_temp_index] = '\0';
+                    brac_numbers[brac_num_count++] = strtod(brac_temp_buffer, NULL);
+
+                    // Store operator
+                    brac_operators[brac_op_count++] = input[end];
+
+                    // Reset temp buffer
+                    brac_temp_index = 0;
+                    brac_temp_buffer[0] = '\0';
+
+                    end++;
+                    continue;
+                }
+
+                // Ignore other characters
+                end++;
+            }
+
+            // Store last number inside bracket
+            if (brac_temp_index > 0) 
+            {
+                brac_temp_buffer[brac_temp_index] = '\0';
+                brac_numbers[brac_num_count++] = strtod(brac_temp_buffer, NULL);
+            }
+
+            // --- Evaluate * and / inside bracket ---
+            for (int j = 0; j < brac_op_count; j++)
+            {
+                if (brac_operators[j] == '*' || brac_operators[j] == '/') 
+                {
+                    double temp;
+                    if (brac_operators[j] == '*') temp = brac_numbers[j] * brac_numbers[j+1];
+                    else 
+                    {
+                        if (brac_numbers[j+1] == 0) { printf("Division by zero!\n"); return 1; }
+                        temp = brac_numbers[j] / brac_numbers[j+1];
+                    }
+                    brac_numbers[j] = temp;
+
+                    // Shift arrays left
+                    for (int k = j+1; k < brac_num_count-1; k++) brac_numbers[k] = brac_numbers[k+1];
+                    brac_num_count--;
+                    for (int k = j; k < brac_op_count-1; k++) brac_operators[k] = brac_operators[k+1];
+                    brac_op_count--;
+                    j--; // recheck this index
+                }
+            }
+
+            // --- Evaluate + and - inside bracket ---
+            double brac_result = brac_numbers[0];
+            for (int j = 0; j < brac_op_count; j++)
+            {
+                if (brac_operators[j] == '+') brac_result += brac_numbers[j+1];
+                else if (brac_operators[j] == '-') brac_result -= brac_numbers[j+1];
+            }
+
+            // Store bracket result into main numbers array
+            numbers[num_index++] = brac_result;
+
+            // --- NEW FIX ---
+            // Move parser index to closing ')'
+            i = end; 
+            i++; // move to character after ')'
+
+            // If the next character exists and is an operator, store it
+            if (input[i] != '\0' && is_operator(input[i])) 
+            {
+                operators[op_index++] = input[i];
+                i++; // skip past the operator
+            }
+
+            continue;
+        }
+
+
+
+
+        // General Unary minus or unary plus
         if ((input[i] == '-' || input[i] == '+') &&
             (i == 0 || is_operator(input[i - 1]))) 
         {
@@ -68,7 +195,7 @@ int main(void) {
             temp_index++;
 
              // Now input[i] should be a digit or decimal
-            if (!((input[i] >= '0' && input[i] <= '9') || input[i] == '.'))
+            if (!(is_digit_or_decimal(input[i])))
             {
                 printf("Invalid expression after sign sequence!\n");
                 return 1;
@@ -79,7 +206,7 @@ int main(void) {
         }
 
         // If digit or decimal point → add to temp buffer
-        else if ((input[i] >= '0' && input[i] <= '9') || input[i] == '.') 
+        else if (is_digit_or_decimal(input[i])) 
         {
             temp_buffer[temp_index] = input[i];
             temp_index++;
@@ -119,6 +246,12 @@ int main(void) {
             continue;
         }
 
+        else if (input[i] == '(' || input[i] == ')')
+        {
+            continue;
+        }
+        
+
         else
         {
             // dealing with non-numbers / operators
@@ -141,13 +274,6 @@ int main(void) {
 
         if (operators[i] == '*' || operators[i] == '/') 
         {
-            // check for invalid multiplications and divisions sequence
-            // if (operators[i + 1] == '*' || operators[i + 1] == '/')
-            // {
-            //     printf("Invalid expression: two * or / operators in a row!\n");
-            //     return 1;
-            // }
-            
             double temp;
 
             if (operators[i] == '*')
@@ -199,7 +325,8 @@ int main(void) {
     return 0;
 }
 
-int is_operator(char c) {
+int is_operator(char c)
+{
     switch (c) {
         case '+':
         case '-':
@@ -210,3 +337,25 @@ int is_operator(char c) {
             return 0;   // FALSE → NOT an operator
     }
 }
+
+int is_digit_or_decimal(char c)
+{
+    switch (c)
+    {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '.': 
+        return 1; 
+    default:
+        return 0;
+    }
+}
+
