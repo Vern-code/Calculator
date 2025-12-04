@@ -44,14 +44,36 @@ int main(void) {
         }
         
 
+
         // ------------------------
         // DEALING WITH BRACKETS
         //-----------------------
-
         if (input[i] == '(')
         {
             int start = i + 1;
             int end = start;
+
+            // --- If there's a pending number in temp_buffer before '(' -> store it first ---
+            if (temp_index > 0)
+            {
+                temp_buffer[temp_index] = '\0';
+                numbers[num_index] = strtod(temp_buffer, &ptr);
+                num_index++;
+                // reset main temp buffer
+                temp_index = 0;
+                temp_buffer[0] = '\0';
+            }
+
+            // --- Insert implied multiplication BEFORE bracket if previous token is not an operator ---
+            if (num_index > 0)
+            {
+                // if previous char is NOT an operator (so it's a digit or ')'), insert '*'
+                if (i > 0 && !is_operator(input[i - 1]))
+                {
+                    operators[op_index] = '*';
+                    op_index++;
+                }
+            }
 
             // Temporary buffer and counters for inside the bracket
             char brac_temp_buffer[100];
@@ -64,8 +86,8 @@ int main(void) {
             // Scan until closing ')'
             while (input[end] != ')' && input[end] != '\0')
             {
-                // Handle unary +/- inside brackets
-                if ((input[end] == '-' || input[end] == '+') && 
+                // Unary +/-
+                if ((input[end] == '-' || input[end] == '+') &&
                     (end == start || is_operator(input[end - 1])))
                 {
                     int minus_count = 0;
@@ -74,29 +96,31 @@ int main(void) {
                         if (input[end] == '-') minus_count++;
                         end++;
                     }
-                    brac_temp_buffer[brac_temp_index++] = (minus_count % 2 == 0) ? '+' : '-';
+
+                    brac_temp_buffer[brac_temp_index] = (minus_count % 2 == 0) ? '+' : '-';
+                    brac_temp_index++;
                     continue;
                 }
 
                 // Digit or decimal
-                if (is_digit_or_decimal(input[end])) 
+                if (is_digit_or_decimal(input[end]))
                 {
-                    brac_temp_buffer[brac_temp_index++] = input[end];
+                    brac_temp_buffer[brac_temp_index] = input[end];
+                    brac_temp_index++;
                     end++;
                     continue;
                 }
 
-                // Operator
-                if (is_operator(input[end])) 
+                // Operator inside bracket
+                if (is_operator(input[end]))
                 {
-                    // Close current number string
                     brac_temp_buffer[brac_temp_index] = '\0';
-                    brac_numbers[brac_num_count++] = strtod(brac_temp_buffer, NULL);
+                    brac_numbers[brac_num_count] = strtod(brac_temp_buffer, NULL);
+                    brac_num_count++;
 
-                    // Store operator
-                    brac_operators[brac_op_count++] = input[end];
+                    brac_operators[brac_op_count] = input[end];
+                    brac_op_count++;
 
-                    // Reset temp buffer
                     brac_temp_index = 0;
                     brac_temp_buffer[0] = '\0';
 
@@ -108,66 +132,62 @@ int main(void) {
                 end++;
             }
 
-            // Store last number inside bracket
-            if (brac_temp_index > 0) 
+            // Last number in bracket
+            if (brac_temp_index > 0)
             {
                 brac_temp_buffer[brac_temp_index] = '\0';
-                brac_numbers[brac_num_count++] = strtod(brac_temp_buffer, NULL);
+                brac_numbers[brac_num_count] = strtod(brac_temp_buffer, NULL);
+                brac_num_count++;
             }
 
-            // --- Evaluate * and / inside bracket ---
+            // Evaluate * and /
             for (int j = 0; j < brac_op_count; j++)
             {
-                if (brac_operators[j] == '*' || brac_operators[j] == '/') 
+                if (brac_operators[j] == '*' || brac_operators[j] == '/')
                 {
                     double temp;
-                    if (brac_operators[j] == '*') temp = brac_numbers[j] * brac_numbers[j+1];
-                    else 
+                    if (brac_operators[j] == '*') temp = brac_numbers[j] * brac_numbers[j + 1];
+                    else
                     {
-                        if (brac_numbers[j+1] == 0) { printf("Division by zero!\n"); return 1; }
-                        temp = brac_numbers[j] / brac_numbers[j+1];
+                        if (brac_numbers[j + 1] == 0) { printf("Division by zero!\n"); return 1; }
+                        temp = brac_numbers[j] / brac_numbers[j + 1];
                     }
                     brac_numbers[j] = temp;
 
-                    // Shift arrays left
-                    for (int k = j+1; k < brac_num_count-1; k++) brac_numbers[k] = brac_numbers[k+1];
+                    // Shift left
+                    for (int k = j + 1; k < brac_num_count - 1; k++) brac_numbers[k] = brac_numbers[k + 1];
                     brac_num_count--;
-                    for (int k = j; k < brac_op_count-1; k++) brac_operators[k] = brac_operators[k+1];
+                    for (int k = j; k < brac_op_count - 1; k++) brac_operators[k] = brac_operators[k + 1];
                     brac_op_count--;
-                    j--; // recheck this index
+                    j--;
                 }
             }
 
-            // --- Evaluate + and - inside bracket ---
+            // Evaluate + and -
             double brac_result = brac_numbers[0];
             for (int j = 0; j < brac_op_count; j++)
             {
-                if (brac_operators[j] == '+') brac_result += brac_numbers[j+1];
-                else if (brac_operators[j] == '-') brac_result -= brac_numbers[j+1];
+                if (brac_operators[j] == '+') brac_result += brac_numbers[j + 1];
+                else if (brac_operators[j] == '-') brac_result -= brac_numbers[j + 1];
             }
 
-            // Store bracket result into main numbers array
-            numbers[num_index++] = brac_result;
+            // Store bracket result
+            numbers[num_index] = brac_result;
+            num_index++;
 
-            // --- NEW FIX ---
             // Move parser index to closing ')'
-            i = end; 
-            i++; // move to character after ')'
-
-            // If the next character exists and is an operator, store it
-            if (input[i] != '\0' && is_operator(input[i])) 
-            {
-                operators[op_index++] = input[i];
-                i++; // skip past the operator
-            }
-
+            i = end;
+            i++; // continue from next char
             continue;
         }
 
 
 
 
-        // General Unary minus or unary plus
+
+        // ------------------------------------
+        // GENERAL UNARY PLUS AND MINUS
+        // ---------------------------------
         if ((input[i] == '-' || input[i] == '+') &&
             (i == 0 || is_operator(input[i - 1]))) 
         {
