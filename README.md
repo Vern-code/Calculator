@@ -23,4 +23,4 @@ Detects multiple counts of - and + in a row
 
 # Calculator_5
 Handling of brackets
-Can now solve expressions with brackets
+Can now solve expressions with brackets. Nested Brackets are also allowed.
