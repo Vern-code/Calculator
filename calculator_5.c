@@ -37,13 +37,10 @@ int main(void) {
     // ----------------------------
     for (int i = 0; i < strlen(input); i++)
     {
-
         if (input[i] == ' ') 
         {
             continue;
         }
-        
-
 
         // ------------------------
         // DEALING WITH BRACKETS
@@ -59,16 +56,17 @@ int main(void) {
                 temp_buffer[temp_index] = '\0';
                 numbers[num_index] = strtod(temp_buffer, &ptr);
                 num_index++;
-                // reset main temp buffer
                 temp_index = 0;
                 temp_buffer[0] = '\0';
-            }
 
-            // --- Insert implied multiplication BEFORE bracket if previous token is not an operator ---
-            if (num_index > 0)
+                // Insert multiplication before '(' if previous number exists
+                operators[op_index] = '*';
+                op_index++;
+            }
+            else if (num_index > 0)
             {
-                // if previous char is NOT an operator (so it's a digit or ')'), insert '*'
-                if (i > 0 && !is_operator(input[i - 1]))
+                // Check previous char not operator (for implied multiplication)
+                if (i > 0 && !is_operator(input[i - 1]) && input[i - 1] != '(')
                 {
                     operators[op_index] = '*';
                     op_index++;
@@ -86,9 +84,9 @@ int main(void) {
             // Scan until closing ')'
             while (input[end] != ')' && input[end] != '\0')
             {
-                // Unary +/-
+                // Unary +/- inside bracket
                 if ((input[end] == '-' || input[end] == '+') &&
-                    (end == start || is_operator(input[end - 1])))
+                    (end == start || is_operator(input[end - 1]) || input[end - 1] == '('))
                 {
                     int minus_count = 0;
                     while (input[end] == '+' || input[end] == '-')
@@ -96,7 +94,6 @@ int main(void) {
                         if (input[end] == '-') minus_count++;
                         end++;
                     }
-
                     brac_temp_buffer[brac_temp_index] = (minus_count % 2 == 0) ? '+' : '-';
                     brac_temp_index++;
                     continue;
@@ -114,9 +111,13 @@ int main(void) {
                 // Operator inside bracket
                 if (is_operator(input[end]))
                 {
-                    brac_temp_buffer[brac_temp_index] = '\0';
-                    brac_numbers[brac_num_count] = strtod(brac_temp_buffer, NULL);
-                    brac_num_count++;
+                    // FIXED: Only store number if there's pending digits (avoids bogus 0 after sub-expressions)
+                    if (brac_temp_index > 0)
+                    {
+                        brac_temp_buffer[brac_temp_index] = '\0';
+                        brac_numbers[brac_num_count] = strtod(brac_temp_buffer, NULL);
+                        brac_num_count++;
+                    }
 
                     brac_operators[brac_op_count] = input[end];
                     brac_op_count++;
@@ -128,7 +129,7 @@ int main(void) {
                     continue;
                 }
 
-                // Ignore other characters
+                // Ignore other characters (should not happen in valid input)
                 end++;
             }
 
@@ -140,7 +141,7 @@ int main(void) {
                 brac_num_count++;
             }
 
-            // Evaluate * and /
+            // Evaluate * and / inside bracket (higher precedence)
             for (int j = 0; j < brac_op_count; j++)
             {
                 if (brac_operators[j] == '*' || brac_operators[j] == '/')
@@ -159,63 +160,63 @@ int main(void) {
                     brac_num_count--;
                     for (int k = j; k < brac_op_count - 1; k++) brac_operators[k] = brac_operators[k + 1];
                     brac_op_count--;
-                    j--;
+                    j--;  // re-check current position
                 }
             }
 
-            // Evaluate + and -
+            // Evaluate + and - inside bracket
+            // FIXED: After shifting, we must use the updated brac_num_count
             double brac_result = brac_numbers[0];
+            int idx = 1; // next number index
             for (int j = 0; j < brac_op_count; j++)
             {
-                if (brac_operators[j] == '+') brac_result += brac_numbers[j + 1];
-                else if (brac_operators[j] == '-') brac_result -= brac_numbers[j + 1];
+                if (brac_operators[j] == '+') brac_result += brac_numbers[idx];
+                else if (brac_operators[j] == '-') brac_result -= brac_numbers[idx];
+                idx++;
             }
 
-            // Store bracket result
+            // Store bracket result as a single number
             numbers[num_index] = brac_result;
             num_index++;
 
+            // Reset temp buffer for next number
+            temp_index = 0;
+            temp_buffer[0] = '\0';
+
+            // ----------------------------
+            // IMPLICIT MULTIPLICATION AFTER ')'
+            // ----------------------------
+            int next = end + 1;
+            while (input[next] == ' ') next++; // skip spaces
+            if (input[next] != '\0' && (is_digit_or_decimal(input[next]) || input[next] == '('))
+            {
+                operators[op_index] = '*';
+                op_index++;
+            }
+
             // Move parser index to closing ')'
             i = end;
-            i++; // continue from next char
             continue;
         }
-
-
-
-
 
         // ------------------------------------
         // GENERAL UNARY PLUS AND MINUS
         // ---------------------------------
         if ((input[i] == '-' || input[i] == '+') &&
-            (i == 0 || is_operator(input[i - 1]))) 
+            (i == 0 || is_operator(input[i - 1]) || input[i - 1] == '(')) 
         {
-
             int minus_count = 0;
 
-            while (input[i] == '+' || input[i] == '-') 
+            while (i < strlen(input) && (input[i] == '+' || input[i] == '-')) 
             {
-                if (input[i] == '-')
-                {
-                    minus_count++;
-                }
-                i++;   // move to next character
+                if (input[i] == '-') minus_count++;
+                i++;
             }
 
-            if (minus_count % 2 == 0)
-            {
-                temp_buffer[temp_index] = '+';
-            }
-            else
-            {
-                temp_buffer[temp_index] = '-';
-            }
-            
+            temp_buffer[temp_index] = (minus_count % 2 == 0) ? '+' : '-';
             temp_index++;
 
-             // Now input[i] should be a digit or decimal
-            if (!(is_digit_or_decimal(input[i])))
+            if (i >= strlen(input) || !is_digit_or_decimal(input[i]))
             {
                 printf("Invalid expression after sign sequence!\n");
                 return 1;
@@ -226,7 +227,7 @@ int main(void) {
         }
 
         // If digit or decimal point → add to temp buffer
-        else if (is_digit_or_decimal(input[i])) 
+        else if (is_digit_or_decimal(input[i]))
         {
             temp_buffer[temp_index] = input[i];
             temp_index++;
@@ -234,26 +235,25 @@ int main(void) {
         }
 
         // If operator
-        else if (is_operator(input[i])) 
+        else if (is_operator(input[i]))
         {
-            // Check if two invalid operators occur in a row
-            if (i > 0 && is_operator(input[i - 1])) {
-        
-            // Allow ONLY valid unary signs (-,+) after another operator
-                if (!((input[i] == '+' || input[i] == '-') 
-                && (input[i-1] == '+' || input[i-1] == '-' ))) 
+            // Check invalid sequences
+            if (i > 0 && is_operator(input[i - 1]))
+            {
+                if (!((input[i] == '+' || input[i] == '-') && (input[i-1] == '+' || input[i-1] == '-')))
                 {
                     printf("Invalid operator sequence near '%c%c'\n", input[i-1], input[i]);
                     return 1;
                 }
             }
 
-            // Close number string
-            temp_buffer[temp_index] = '\0';
-
-            // Convert + store
-            numbers[num_index] = strtod(temp_buffer, &ptr);
-            num_index++;
+            // Close number string only if there's pending digits (avoids bogus 0 after brackets)
+            if (temp_index > 0)
+            {
+                temp_buffer[temp_index] = '\0';
+                numbers[num_index] = strtod(temp_buffer, &ptr);
+                num_index++;
+            }
 
             // Store operator
             operators[op_index] = input[i];
@@ -262,26 +262,20 @@ int main(void) {
             // Reset temp buffer
             temp_index = 0;
             temp_buffer[0] = '\0';
-            
-            continue;
-        }
 
-        else if (input[i] == '(' || input[i] == ')')
-        {
             continue;
         }
-        
 
         else
         {
-            // dealing with non-numbers / operators
             printf("Invalid input. Only numbers and operators (+,-,*,/) allowed!\n");
             return 1;
         }
     }
 
     // Store last number
-    if (temp_index > 0) {
+    if (temp_index > 0)
+    {
         temp_buffer[temp_index] = '\0';
         numbers[num_index] = strtod(temp_buffer, &ptr);
         num_index++;
@@ -290,39 +284,28 @@ int main(void) {
     // ----------------------------
     // HANDLE * and /
     // ----------------------------
-    for (int i = 0; i < op_index; i++) {
-
-        if (operators[i] == '*' || operators[i] == '/') 
+    for (int i = 0; i < op_index; i++)
+    {
+        if (operators[i] == '*' || operators[i] == '/')
         {
             double temp;
-
-            if (operators[i] == '*')
-                temp = numbers[i] * numbers[i + 1];
-            else if (operators[i] == '/' ) 
+            if (operators[i] == '*') temp = numbers[i] * numbers[i + 1];
+            else
             {
-                if (numbers[i + 1] == 0) {
-                    printf("Error: Division by zero!\n");
-                    return 1;
-                }
+                if (numbers[i + 1] == 0) { printf("Error: Division by zero!\n"); return 1; }
                 temp = numbers[i] / numbers[i + 1];
             }
-
             numbers[i] = temp;
 
             // Shift numbers left
-            for (int j = i + 1; j < num_index - 1; j++) {
-                numbers[j] = numbers[j + 1];
-            }
+            for (int j = i + 1; j < num_index - 1; j++) numbers[j] = numbers[j + 1];
             num_index--;
 
             // Shift operators left
-            for (int j = i; j < op_index - 1; j++) {
-                operators[j] = operators[j + 1];
-            }
+            for (int j = i; j < op_index - 1; j++) operators[j] = operators[j + 1];
             op_index--;
 
-            i--; // Check same index again
-
+            i--; // recheck current index
         }
     }
 
@@ -330,16 +313,12 @@ int main(void) {
     // HANDLE + and -
     // ----------------------------
     double result = numbers[0];
-
-    for (int i = 0; i < op_index; i++) 
+    for (int i = 0; i < op_index; i++)
     {
-        if (operators[i] == '+')
-            result += numbers[i + 1];
-        else if (operators[i] == '-')
-            result -= numbers[i + 1];
+        if (operators[i] == '+') result += numbers[i + 1];
+        else if (operators[i] == '-') result -= numbers[i + 1];
     }
-   
-    
+
     printf("RESULT: %.3f\n", result);
 
     return 0;
@@ -347,14 +326,15 @@ int main(void) {
 
 int is_operator(char c)
 {
-    switch (c) {
+    switch (c)
+    {
         case '+':
         case '-':
         case '*':
         case '/':
-            return 1;   // TRUE → it IS an operator
+            return 1;
         default:
-            return 0;   // FALSE → NOT an operator
+            return 0;
     }
 }
 
@@ -362,20 +342,11 @@ int is_digit_or_decimal(char c)
 {
     switch (c)
     {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-    case '.': 
-        return 1; 
-    default:
-        return 0;
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+        case '.':
+            return 1;
+        default:
+            return 0;
     }
 }
-
